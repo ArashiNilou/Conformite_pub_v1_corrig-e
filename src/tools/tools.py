@@ -4,8 +4,9 @@ from llama_index.llms.azure_openai import AzureOpenAI
 from llama_index.core.schema import Document, MediaResource
 from llama_index.core.llms import ChatMessage, ImageBlock, TextBlock, MessageRole
 from llama_index.core.tools import BaseTool, FunctionTool
-from prompts.prompts import description_prompt, legal_prompt, clarifications_prompt
+from prompts.prompts import description_prompt, legal_prompt, clarifications_prompt, consistency_prompt
 from raptor.raptor_setup import RaptorSetup
+from datetime import datetime
 
 class Tools:
     """Collection des outils disponibles pour l'analyse de publicité"""
@@ -23,6 +24,11 @@ class Tools:
                 fn=self.analyze_vision,
                 name="analyze_vision",
                 description="Analyse une image publicitaire et fournit une description détaillée structurée. Utilisez cet outil en premier pour obtenir une description de l'image.",
+            ),
+            FunctionTool.from_defaults(
+                fn=self.verify_consistency,
+                name="verify_consistency",
+                description="Vérifie la cohérence des informations (orthographe, adresse, téléphone, email, url) après l'analyse visuelle.",
             ),
             FunctionTool.from_defaults(
                 fn=self.search_legislation,
@@ -73,6 +79,38 @@ class Tools:
         response = self.llm.chat(messages=[msg])
         self.vision_result = str(response)
         return self.vision_result
+
+    def verify_consistency(self, vision_result: str) -> str:
+        """
+        Vérifie la cohérence des informations extraites de l'image
+        
+        Args:
+            vision_result: Résultat de l'analyse visuelle
+            
+        Returns:
+            str: Rapport de vérification de cohérence
+        """
+        print("\n🔍 Vérification de la cohérence des informations...")
+        
+        if not self.vision_result:
+            raise ValueError("L'analyse visuelle doit être effectuée d'abord")
+        
+        # Obtenir la date actuelle au format français
+        current_date = datetime.now().strftime("%d/%m/%Y")
+        
+        msg = ChatMessage(
+            role=MessageRole.USER,
+            blocks=[
+                TextBlock(text=consistency_prompt.format(
+                    vision_result=vision_result,
+                    current_date=current_date
+                )),
+                ImageBlock(image=self._last_image_data),
+            ],
+        )
+        
+        response = self.llm.chat(messages=[msg])
+        return str(response)
 
     def search_legislation(self, vision_result: str) -> str:
         """

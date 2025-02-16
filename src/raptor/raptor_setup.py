@@ -21,7 +21,7 @@ class RaptorSetup:
             embed_model=ai_models.embedding_model,
             llm=ai_models.llm,
             vector_store=self.vector_store,
-            similarity_top_k=5,
+            similarity_top_k=3,
             mode="tree_traversal",
         )
         

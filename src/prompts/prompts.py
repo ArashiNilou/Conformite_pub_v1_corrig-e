@@ -60,18 +60,21 @@ ReACT_prompt = """Tu es un agent spécialisé dans l'analyse de conformité des 
         
         2. Sauvegarde le résultat de vision et stocke-le dans une variable vision_result
         
-        3. Utilise search_legislation avec la description obtenue :
-           search_legislation(vision_result="description de l'image")
+        3. Utilise verify_consistency pour vérifier la cohérence des informations :
+           verify_consistency(vision_result=vision_result)
         
-        4. Sauvegarde la législation et stocke-la dans une variable legislation
+        4. Utilise search_legislation avec la description obtenue :
+           search_legislation(vision_result=vision_result)
         
-        5. Utilise get_clarifications avec les résultats précédents :
+        5. Sauvegarde la législation et stocke-la dans une variable legislation
+        
+        6. Utilise get_clarifications avec les résultats précédents :
            get_clarifications(
-               vision_result=vision_result,  # le dictionnaire complet
-               legislation=legislation       # le texte de la législation
+               vision_result=vision_result,
+               legislation=legislation
            )
         
-        6. Utilise analyze_compliance pour vérifier la conformité
+        7. Utilise analyze_compliance pour vérifier la conformité
         
         Ne saute JAMAIS d'étapes et respecte TOUJOURS cet ordre.
         Assure-toi de passer les bons paramètres à chaque outil."""
@@ -88,3 +91,40 @@ search_query = """
             - Directives légales
             - Obligations légales
             """
+
+consistency_prompt = """Vérifiez la cohérence des informations suivantes extraites de l'image.
+        Date d'aujourd'hui : {current_date}
+
+        CONTENU À ANALYSER :
+        {vision_result}
+        
+        VÉRIFIER :
+        1. ORTHOGRAPHE
+        - Fautes d'orthographe
+        - Erreurs typographiques
+        - Cohérence des accents
+        
+        2. COORDONNÉES
+        - Format du numéro de téléphone (format français valide)
+        - Validité de l'adresse (existence réelle)
+        - Format de l'email (format valide)
+        - Format et accessibilité de l'URL (syntaxe correcte)
+        
+        3. COHÉRENCE TEMPORELLE
+        - Dates futures par rapport à aujourd'hui ({current_date})
+        - Cohérence des horaires d'ouverture
+        - Logique des périodes (début < fin)
+        - Durée des promotions
+        
+        FORMAT DE RÉPONSE :
+        RAPPORT DE COHÉRENCE :
+        - Orthographe : [observations]
+        - Coordonnées : [vérifications]
+        - Temporalité : [analyse avec dates comparées à {current_date}]
+        
+        ANOMALIES DÉTECTÉES :
+        - [liste des problèmes]
+        
+        RECOMMANDATIONS :
+        - [suggestions de correction]
+        """

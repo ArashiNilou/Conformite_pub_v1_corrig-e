@@ -7,6 +7,7 @@ from llama_index.core.tools import BaseTool, FunctionTool
 from prompts.prompts import description_prompt, legal_prompt, clarifications_prompt, consistency_prompt
 from raptor.raptor_setup import RaptorSetup
 from datetime import datetime
+from utils.output_saver import OutputSaver
 
 class Tools:
     """Collection des outils disponibles pour l'analyse de publicité"""
@@ -16,6 +17,7 @@ class Tools:
         self._tools = self._create_tools()
         self.vision_result = None
         self.legislation = None
+        self.output_saver = OutputSaver()
     
     def _create_tools(self) -> list[BaseTool]:
         """Crée la liste des outils disponibles pour l'agent"""
@@ -62,6 +64,8 @@ class Tools:
         """
         print(f"\n🖼️ Analyse de l'image: {image_path}")
         
+        self.output_saver.start_new_analysis(image_path)
+        
         with open(image_path, "rb") as image_file:
             img_data = base64.b64encode(image_file.read())
         
@@ -78,6 +82,9 @@ class Tools:
 
         response = self.llm.chat(messages=[msg])
         self.vision_result = str(response)
+        
+        self.output_saver.save_vision_result(self.vision_result)
+        
         return self.vision_result
 
     def verify_consistency(self, vision_result: str) -> str:
@@ -110,7 +117,11 @@ class Tools:
         )
         
         response = self.llm.chat(messages=[msg])
-        return str(response)
+        result = str(response)
+        
+        self.output_saver.save_consistency_check(result)
+        
+        return result
 
     def search_legislation(self, vision_result: str) -> str:
         """
@@ -144,6 +155,8 @@ class Tools:
             synthesis = self.raptor.query(query)
             print(f"\nSynthèse de la législation: {synthesis[:200]}...")
             
+            self.output_saver.save_legislation(synthesis)
+            
             return synthesis
             
         except Exception as e:
@@ -166,18 +179,34 @@ class Tools:
         if not self.vision_result or not self.legislation:
             raise ValueError("L'analyse visuelle et la recherche de législation doivent être effectuées d'abord")
         
+        # Initialiser l'historique des clarifications si nécessaire
+        if not hasattr(self, '_clarifications_history'):
+            self._clarifications_history = set()
+        
+        # Vérifier si la question a déjà été posée
+        if questions_text in self._clarifications_history:
+            print("⚠️ Cette clarification a déjà été demandée")
+            return "Cette question a déjà été posée. Veuillez demander des clarifications sur d'autres aspects ou passer à l'analyse de conformité."
+        
+        # Ajouter la question à l'historique
+        self._clarifications_history.add(questions_text)
+        
         # Créer le message multimodal avec l'image
         msg = ChatMessage(
             role=MessageRole.USER,
             blocks=[
                 TextBlock(text=clarifications_prompt.format(questions_text=questions_text)),
-                ImageBlock(image=self._last_image_data),  # On garde l'image en mémoire
+                ImageBlock(image=self._last_image_data),
             ],
         )
         
         print("\nEnvoi de l'image et des questions au LLM...")
         response = self.llm.chat(messages=[msg])
-        return str(response)
+        result = str(response)
+        
+        self.output_saver.save_clarifications(result)
+        
+        return result
 
     def analyze_compliance(self) -> str:
         """
@@ -190,4 +219,8 @@ class Tools:
             
         prompt = legal_prompt.format(description=self.vision_result)
         response = self.llm.complete(prompt)
-        return str(response) 
+        result = str(response)
+        
+        self.output_saver.save_compliance_analysis(result)
+        
+        return result 

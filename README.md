@@ -66,7 +66,7 @@ Le script principal pour lancer une analyse est `src/main.py`.
 
 ```bash
 python src/main.py --file /chemin/vers/votre/document.pdf
-# ou pour un PDF
+# ou pour un dossier
 python src/main.py --dir /chemin/vers/votre/dossier
 ```
 

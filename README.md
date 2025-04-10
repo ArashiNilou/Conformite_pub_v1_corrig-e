@@ -52,7 +52,7 @@ Le système est conçu pour traiter un document en plusieurs étapes en faisant 
 3.  **Installer les dépendances** :
     ```bash
     conda install --file requirements.txt
-    pip install llama-index-vector-stores-chroma llama-index-packs-raptor fitz PyMuPDF opencv-python docling
+    pip install llama-index-vector-stores-chroma llama-index-llms-azure-openai llama-index-embeddings-azure-openai llama-index-packs-raptor PyMuPDF opencv-python docling
     ```
 
 4.  **Configuration Azure** :
@@ -65,7 +65,7 @@ Le script principal pour lancer une analyse est `src/main.py`.
 **Exemple de commande (à adapter selon les arguments réels) :**
 
 ```bash
-python src/main.py --image /chemin/vers/votre/document.pdf
+python src/main.py --file /chemin/vers/votre/document.pdf
 # ou pour un PDF
 python src/main.py --dir /chemin/vers/votre/dossier
 ```

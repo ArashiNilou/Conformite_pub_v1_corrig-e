@@ -20,11 +20,14 @@ class OutputSaver:
         self.current_analysis: Dict[str, Any] = {
             "timestamp": "",
             "image_path": "",
+            "raw_text": "",
             "vision_result": "",
             "consistency_check": "",
+            "dates_verification": "",
             "legislation": "",
             "clarifications": "",
-            "compliance_analysis": ""
+            "compliance_analysis": "",
+            "extracted_text": ""
         }
     
     def _generate_filename(self, image_path: str) -> str:
@@ -51,11 +54,14 @@ class OutputSaver:
         self.current_analysis = {
             "timestamp": datetime.now().isoformat(),
             "image_path": str(image_path),
+            "raw_text": "",
             "vision_result": "",
             "consistency_check": "",
+            "dates_verification": "",
             "legislation": "",
             "clarifications": "",
-            "compliance_analysis": ""
+            "compliance_analysis": "",
+            "extracted_text": ""
         }
     
     def save_vision_result(self, result: str) -> None:
@@ -83,6 +89,82 @@ class OutputSaver:
         self.current_analysis["compliance_analysis"] = result
         self._save_current_analysis()
     
+    def save_text_extraction(self, result: str, mode: str = "docling") -> None:
+        """
+        Sauvegarde le texte extrait de l'image
+        
+        Args:
+            result: Texte extrait
+            mode: Mode d'extraction utilisé (docling, gpt4v, azure_cv)
+        """
+        self.current_analysis["extracted_text"] = {
+            "text": result,
+            "extraction_mode": mode,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        self._save_current_analysis()
+    
+    def save_raw_text(self, result: str) -> None:
+        """
+        Sauvegarde le texte brut extrait de l'image
+        
+        Args:
+            result: Texte brut extrait
+        """
+        self.current_analysis["raw_text"] = result
+        self._save_current_analysis()
+        
+        # Créer un dossier spécifique pour les textes bruts
+        raw_text_dir = self.output_dir / "raw_text"
+        raw_text_dir.mkdir(exist_ok=True)
+        
+        # Sauvegarder dans un fichier texte séparé
+        if self.current_analysis["image_path"]:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{Path(self.current_analysis['image_path']).stem}_raw_{timestamp}.txt"
+            output_path = raw_text_dir / filename
+            
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(result)
+                
+            print(f"\n💾 Texte brut sauvegardé séparément dans : {output_path}")
+        
+        return
+    
+    def save_dates_verification(self, result: str) -> None:
+        """
+        Sauvegarde le résultat de la vérification des dates
+        
+        Args:
+            result: Résultat de la vérification des dates
+        """
+        self.current_analysis["dates_verification"] = result
+        self._save_current_analysis()
+        
+        # Créer un dossier spécifique pour les vérifications de dates
+        dates_dir = self.output_dir / "dates_verification"
+        dates_dir.mkdir(exist_ok=True)
+        
+        # Sauvegarder dans un fichier texte séparé
+        if self.current_analysis["image_path"]:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{Path(self.current_analysis['image_path']).stem}_dates_{timestamp}.txt"
+            output_path = dates_dir / filename
+            
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(result)
+                
+            print(f"\n💾 Vérification des dates sauvegardée séparément dans : {output_path}")
+    
+    def is_analysis_in_progress(self) -> bool:
+        """
+        Vérifie si une analyse est actuellement en cours
+        
+        Returns:
+            bool: True si une analyse est en cours, False sinon
+        """
+        return bool(self.current_analysis.get("image_path", ""))
+    
     def _save_current_analysis(self) -> None:
         """Sauvegarde l'analyse en cours dans un fichier JSON"""
         if not self.current_analysis["image_path"]:
@@ -96,51 +178,82 @@ class OutputSaver:
             
         print(f"\n💾 Résultats sauvegardés dans : {output_path}")
 
+def make_json_serializable(obj):
+    """
+    Convertit les objets non-sérialisables en format compatible avec JSON
+    
+    Args:
+        obj: Objet à convertir
+        
+    Returns:
+        Un objet compatible JSON
+    """
+    if isinstance(obj, (str, int, float, bool, type(None))):
+        return obj
+    elif isinstance(obj, (list, tuple)):
+        return [make_json_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: make_json_serializable(value) for key, value in obj.items()}
+    else:
+        try:
+            # Essayer des attributs communs pour obtenir une représentation textuelle
+            if hasattr(obj, 'response'):
+                return str(obj.response)
+            elif hasattr(obj, 'text'):
+                return str(obj.text)
+            elif hasattr(obj, 'content'):
+                return str(obj.content)
+            elif hasattr(obj, '__str__'):
+                return str(obj)
+            else:
+                return repr(obj)
+        except Exception:
+            return repr(obj)
+
 def save_output(input_path: str, analysis_data: Dict[str, Any]) -> str:
     """
     Sauvegarde les résultats d'analyse dans un fichier JSON
     
     Args:
-        input_path: Chemin du fichier d'entrée
+        input_path: Chemin du fichier analysé
         analysis_data: Données d'analyse à sauvegarder
         
     Returns:
-        str: Chemin du fichier JSON créé
+        Chemin du fichier de sortie
     """
     try:
-        # Créer le dossier de base s'il n'existe pas
-        base_output_dir = Path(__file__).parent.parent.parent / "outputs"
-        base_output_dir.mkdir(exist_ok=True)
-        
-        # Créer un sous-dossier avec la date
-        today = datetime.now().strftime("%Y%m%d")
-        date_dir = base_output_dir / today
-        date_dir.mkdir(exist_ok=True)
-        
-        # Créer un sous-dossier avec le nom du fichier source
+        # Formater et préparer les données
         input_file = Path(input_path)
-        source_name = Path(input_file.stem).stem
-        source_dir = date_dir / source_name
-        source_dir.mkdir(exist_ok=True)
+        base_output_dir = Path("outputs")
         
-        # Générer le nom du fichier de sortie
-        timestamp = datetime.now().strftime("%H%M%S")
-        output_filename = f"analyse_{timestamp}.json"
-        output_path = source_dir / output_filename
+        # Créer un nom de fichier unique
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"analyse_{input_file.stem}_{timestamp}.json"
         
-        # Nettoyer les données d'analyse
+        # Organiser les fichiers par date
+        today = datetime.now().strftime("%Y%m%d")
+        source_dir = base_output_dir / today / input_file.stem
+        source_dir.mkdir(parents=True, exist_ok=True)
+        
+        output_path = source_dir / filename
+        
+        # Nettoyer les données pour JSON
         clean_data = {
             "input_file": str(input_file.absolute()),
             "converted_file": analysis_data.get("converted_file"),
             "timestamp": analysis_data.get("timestamp"),
             "steps": {
-                "vision_analysis": analysis_data.get("steps", {}).get("vision_analysis", ""),
-                "consistency_check": analysis_data.get("steps", {}).get("consistency_check", ""),
-                "legislation": analysis_data.get("steps", {}).get("legislation", ""),
-                "clarifications": analysis_data.get("steps", {}).get("clarifications", ""),
-                "compliance_analysis": analysis_data.get("steps", {}).get("compliance_analysis", "")
+                "vision_analysis": make_json_serializable(analysis_data.get("steps", {}).get("vision_analysis", "")),
+                "consistency_check": make_json_serializable(analysis_data.get("steps", {}).get("consistency_check", "")),
+                "dates_verification": make_json_serializable(analysis_data.get("steps", {}).get("dates_verification", "")),
+                "legislation": make_json_serializable(analysis_data.get("steps", {}).get("legislation", "")),
+                "clarifications": make_json_serializable(analysis_data.get("steps", {}).get("clarifications", "")),
+                "compliance_analysis": make_json_serializable(analysis_data.get("steps", {}).get("compliance_analysis", "")),
+                "text_extraction": make_json_serializable(analysis_data.get("steps", {}).get("text_extraction", "")),
+                "raw_text": make_json_serializable(analysis_data.get("steps", {}).get("raw_text", ""))
             },
-            "final_response": analysis_data.get("final_response", "")
+            "final_response": make_json_serializable(analysis_data.get("final_response", "")),
+            "extracted_text": make_json_serializable(analysis_data.get("extracted_text", ""))
         }
         
         # Sauvegarder en JSON

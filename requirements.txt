@@ -1,9 +1,10 @@
 llama-index>=0.12.29
-chromadb>=1.0.4
-tenacity>=9.1.2
-python-dotenv>=1.1.0
-openai>=1.72.0
-argparse>=1.4.0
-asyncio>=3.4.3
+llama-index-core>=0.12.29
+llama-index-llms-azure-openai>=0.3.2
+llama-index-embeddings-azure-openai>=0.3.2
+chromadb>=0.4.0
+tenacity>=8.0.0
+python-dotenv>=1.0.0
+openai>=1.0.0
+pillow>=10.0.0
 pathlib>=1.0.1 
-pillow>= 11.1.0

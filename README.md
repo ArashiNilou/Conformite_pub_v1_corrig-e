@@ -33,28 +33,30 @@ Le système est conçu pour traiter un document en plusieurs étapes en faisant 
 
 *   Python 3.x (vérifier la version exacte si nécessaire)
 *   Accès configuré à Azure OpenAI (Clés API, endpoint)
+*   Conda pour la gestion de l'environnement
 
 ### Étapes d'installation
 
 1.  **Cloner le dépôt** (si ce n'est pas déjà fait) :
     ```bash
-    git clone <url_du_depot>
-    cd legalvision-ReAct
+    git clone git@gitlab.com:additi/internal/pole-innovation/legalite-pubs.git
+    cd legalite-pubs
     ```
 
 2.  **Créer un environnement conda** (recommandé) :
     ```bash
-    conda create --name legalvision_env python=3.x  # Remplacez 3.x par la version de Python requise
+    conda create --name legalvision_env python=3.10.16
     conda activate legalvision_env
     ```
 
 3.  **Installer les dépendances** :
     ```bash
-    pip install -r requirements.txt
+    conda install --file requirements.txt
+    pip install llama-index-vector-stores-chroma llama-index-packs-raptor fitz PyMuPDF opencv-python docling
     ```
 
 4.  **Configuration Azure** :
-    Assurez-vous que les variables d'environnement ou un fichier de configuration (`src/config/azure_config.py` ?) contiennent les informations nécessaires pour se connecter aux services Azure OpenAI (Endpoint, Clé API, Noms des déploiements).
+    Assurez-vous que les variables d'environnement ou un fichier de configuration contiennent les informations nécessaires pour se connecter aux services Azure OpenAI (Endpoint, Clé API).
 
 ## Utilisation
 

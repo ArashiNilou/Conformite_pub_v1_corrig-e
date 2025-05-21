@@ -20,12 +20,3 @@ class AzureConfig:
         if not self.API_VERSION:
             raise ValueError("La variable d'environnement AZURE_API_VERSION n'est pas définie.")
 
-# Exemple d'instanciation pour vérifier (optionnel, peut être enlevé)
-# try:
-#     config = AzureConfig()
-#     print("Configuration Azure chargée avec succès.")
-#     print(f"API Key: {'*' * (len(config.API_KEY) - 4) + config.API_KEY[-4:] if config.API_KEY else 'Non définie'}")
-#     print(f"Endpoint: {config.ENDPOINT}")
-#     print(f"API Version: {config.API_VERSION}")
-# except ValueError as e:
-#     print(f"Erreur de configuration: {e}") 

@@ -138,3 +138,5 @@ jpg/
 .pytest_cache/
 # data/  # Décommentez si les données ne doivent pas être versionnées
 # tests_images/ # Décommentez si les images de test ne doivent pas être versionnées
+
+RAPTOR_db/

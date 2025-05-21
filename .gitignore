@@ -140,3 +140,4 @@ jpg/
 # tests_images/ # Décommentez si les images de test ne doivent pas être versionnées
 
 RAPTOR_db/
+RAPTOR_db/
